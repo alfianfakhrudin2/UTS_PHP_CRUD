@@ -1,5 +1,40 @@
 <?php
+session_start(); // Memulai session
+
 require "koneksi.php";
+
+// Function to delete data
+function deleteData($conn, $id) {
+    $sql = "DELETE FROM fakhrudin WHERE id_pembelian = $id";
+    if (mysqli_query($conn, $sql)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+// Check if delete action is requested
+if(isset($_GET['action']) && $_GET['action'] == 'delete') {
+    $id = $_GET['id_pembelian'] ?? null;
+    if($id) {
+        if(deleteData($conn, $id)) {
+            $_SESSION['alert'] = '<div class="alert alert-success alert-dismissible fade show" role="alert">
+                    Data deleted successfully
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>';
+            header("Location: index.php"); // Redirect to clear URL
+            exit();
+        } else {
+            $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    Failed to delete data
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>';
+            header("Location: index.php"); // Redirect to clear URL
+            exit();
+        }
+    }
+}
+
 $sql = "SELECT *, jumlah * harga AS total_bayar FROM fakhrudin";
 ?>
 
@@ -14,6 +49,7 @@ $sql = "SELECT *, jumlah * harga AS total_bayar FROM fakhrudin";
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Bootsrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
@@ -50,12 +86,20 @@ $sql = "SELECT *, jumlah * harga AS total_bayar FROM fakhrudin";
                                 <div class="input-group" style="margin: 14px 0px; padding:0px 10px;">
                                     <input class="inpot" type="search" style="height: 42px;" name="search" id="forml" placeholder="Search?" class="form-control" />
                                     <button style="border-radius: 0px 10px 10px 0px; background: #9ED5C5;" type="submit" class="btn" value="Search"><i class='bx bx-search-alt-2'></i></button>
-                                    <a href="create.php" class="btn" style="height: 42px; border-radius: 10px; margin-left: 600px; color: #06283D; font-size: 16px; background:#B1B2FF;"><b><i class='bx bx-message-alt-add'></i>Add Barang</b></a>
+                                    <a href="create.php" class="btn ms-auto" style="height: 42px; border-radius: 10px; color: #06283D; font-size: 16px; background:#B1B2FF;">
+                                        <b>Add Barang</b>
+                                    </a>
                                 </div>
                             </form>
                         </div>
                         <div class="card-body">
                             <?php
+                            // Check if session alert exists
+                            if(isset($_SESSION['alert'])) {
+                                echo $_SESSION['alert']; // Show the alert
+                                unset($_SESSION['alert']); // Unset the session to remove the alert on refresh
+                            }
+
                             $batas = 5;
                             $page = $_GET['page'] ?? null;
                             if (empty($page)) {
@@ -103,7 +147,7 @@ $sql = "SELECT *, jumlah * harga AS total_bayar FROM fakhrudin";
                                     echo "<td class='text-center'>";
                                     echo "<a style='padding-right: 3px;' href='read.php?id_pembelian=" . $row['id_pembelian'] . "' tittle='View Record' ><span><i class='btn btn-success bx bx-spreadsheet' style='font-size:14px;'></i></span></a>";
                                     echo "<a style='padding-right: 3px;' href='update.php?id_pembelian=" . $row['id_pembelian'] . "' title='Update Record' ><span><i class='btn btn-warning bx bxs-edit' style='font-size:14px;'></i></span></a>";
-                                    echo "<a style='padding-right: 3px;' href='delete.php?id_pembelian=" . $row['id_pembelian'] . "' title='Delete Record'><span><i class='btn btn-danger bx bxs-trash' style='font-size:14px;'></i></span></a>";
+                                    echo "<a style='padding-right: 3px;' href='javascript:void(0);' onclick='confirmDelete(" . $row['id_pembelian'] . ")' title='Delete Record'><span><i class='btn btn-danger bx bxs-trash' style='font-size:14px;'></i></span></a>";
                                     echo "</td>";
                                     echo "</tr>";
                                 }
@@ -168,10 +212,24 @@ $sql = "SELECT *, jumlah * harga AS total_bayar FROM fakhrudin";
     </div>
 
     <script type="text/javascript">
-        $(document).ready(function() {
-            $('[data-toggle="tooltip"]').tooltip();
-        });
+        function confirmDelete(id) {
+            Swal.fire({
+                title: "Are you sure?",
+                text: "Once deleted, you will not be able to recover this record!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, delete it!",
+                cancelButtonText: "No, cancel!",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "index.php?action=delete&id_pembelian=" + id;
+                }
+            });
+        }
     </script>
+
 </body>
 
 </html>
